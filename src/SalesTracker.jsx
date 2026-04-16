@@ -8,7 +8,7 @@ import { useState } from "react";
 const SUPABASE_URL = "https://bdbfmhwlstbpjxfxbsem.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkYmZtaHdsc3RicGp4Znhic2VtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODUyOTQsImV4cCI6MjA5MTg2MTI5NH0.j4hpZwhVE7Pg9jvHzALtGaa3KYmTLsE8ZIBgOocmXZ8";
 
-const ADMIN_EMAILS = ["zacharylabelle8@gmail.com", "al.barry@gmail.com"];
+const ADMIN_EMAILS = ["zacharylabelle8@gmail.com", "al.barry700@gmail.com"];
 
 const GRADES = {
   vendeur: {
