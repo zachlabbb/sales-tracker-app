@@ -8,7 +8,7 @@ import { useState } from "react";
 const SUPABASE_URL = "https://bdbfmhwlstbpjxfxbsem.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkYmZtaHdsc3RicGp4Znhic2VtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODUyOTQsImV4cCI6MjA5MTg2MTI5NH0.j4hpZwhVE7Pg9jvHzALtGaa3KYmTLsE8ZIBgOocmXZ8";
 
-const ADMIN_EMAIL = "zacharylabelle8@gmail.com";
+const ADMIN_EMAILS = ["zacharylabelle8@gmail.com", "al.barry@gmail.com"];
 
 const GRADES = {
   vendeur: {
@@ -287,7 +287,7 @@ export default function SalesTracker() {
   /* ===== ADMIN STATE ===== */
   const [adminData, setAdminData] = useState([]);
   const [adminLoading, setAdminLoading] = useState(false);
-  const isAdmin = session?.user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const isAdmin = ADMIN_EMAILS.some(e => e.toLowerCase() === session?.user?.email?.toLowerCase());
 
   const [showMeetModal, setShowMeetModal] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
