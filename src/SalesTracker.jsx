@@ -8,6 +8,8 @@ import { useState } from "react";
 const SUPABASE_URL = "https://bdbfmhwlstbpjxfxbsem.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkYmZtaHdsc3RicGp4Znhic2VtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODUyOTQsImV4cCI6MjA5MTg2MTI5NH0.j4hpZwhVE7Pg9jvHzALtGaa3KYmTLsE8ZIBgOocmXZ8";
 
+const ADMIN_EMAIL = "zacharylabelle8@gmail.com";
+
 const GRADES = {
   vendeur: {
     label: "Vendeur",
@@ -78,6 +80,14 @@ async function supabaseSave(userId, token, trackerData) {
     },
     body: JSON.stringify({ user_id: userId, data: trackerData, updated_at: new Date().toISOString() }),
   });
+}
+
+async function supabaseLoadAll(token) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/tracker_data?select=user_id,data,updated_at&order=updated_at.desc`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return [];
+  return await res.json();
 }
 
 /* ===== UI COMPONENTS ===== */
@@ -181,6 +191,69 @@ function TeamMemberRow({ member, grade, onAddMeet, onAddClient }) {
   );
 }
 
+function AdminUserRow({ prenom, nom, email, grade, gradeInfo, meets, clients, ventes, teamSize, teamClients, teamMeets, conversion, totalGains, lastActive, meetsList, clientsList }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div style={{ background: "#111827", borderRadius: 12, padding: "14px 16px", marginBottom: 10, border: `1px solid ${gradeInfo.color}22` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, cursor: "pointer" }} onClick={() => setExpanded(!expanded)}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 44, height: 44, borderRadius: "50%", background: `linear-gradient(135deg, ${gradeInfo.color}44, ${gradeInfo.color}22)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700, color: gradeInfo.color, flexShrink: 0 }}>
+            {prenom.charAt(0)}{nom.charAt(0)}
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: "#F3F4F6" }}>{prenom} {nom}</div>
+            <div style={{ fontSize: 12, color: "#6B7280" }}>{email}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+              <span style={{ fontSize: 14 }}>{gradeInfo.emoji}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: gradeInfo.color }}>{gradeInfo.label}</span>
+            </div>
+          </div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: "#10B981", fontFamily: "monospace" }}>{formatMoney(totalGains)}</div>
+          <div style={{ fontSize: 11, color: "#6B7280" }}>Dernier acces: {lastActive}</div>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 12, marginTop: 10, paddingTop: 10, borderTop: "1px solid #1F2937", flexWrap: "wrap" }}>
+        <div style={{ fontSize: 12, color: "#F59E0B" }}>{meets} meets</div>
+        <div style={{ fontSize: 12, color: "#10B981" }}>{clients} clients</div>
+        <div style={{ fontSize: 12, color: "#8B5CF6" }}>{ventes} ventes meet</div>
+        <div style={{ fontSize: 12, color: "#06B6D4" }}>{teamSize} equipe</div>
+        <div style={{ fontSize: 12, color: "#9CA3AF" }}>{conversion}% conversion</div>
+      </div>
+      {expanded && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #1F2937" }}>
+          {grade === "responsable" && teamSize > 0 && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#F59E0B", marginBottom: 4 }}>Equipe: {teamClients} clients, {teamMeets} meets</div>
+            </div>
+          )}
+          {meetsList.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", marginBottom: 4, textTransform: "uppercase" }}>Meets ({meetsList.length})</div>
+              {meetsList.slice(-10).reverse().map((m, i) => (
+                <div key={i} style={{ fontSize: 12, color: "#9CA3AF", padding: "3px 0", display: "flex", justifyContent: "space-between" }}>
+                  <span>{m.prenom} {m.nom}</span><span style={{ color: "#6B7280" }}>{m.date} {m.heure}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {clientsList.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", marginBottom: 4, textTransform: "uppercase" }}>Clients signes ({clientsList.length})</div>
+              {clientsList.slice(-10).reverse().map((c, i) => (
+                <div key={i} style={{ fontSize: 12, color: "#9CA3AF", padding: "3px 0", display: "flex", justifyContent: "space-between" }}>
+                  <span>{c.prenom} {c.nom}</span><span style={{ color: "#6B7280" }}>{c.compagnie}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function getDefaultData() {
   return { grade: "vendeur", meetsList: [], clientsList: [], ventesList: [], team: [], weeklyMeets: 0, history: [] };
 }
@@ -210,6 +283,11 @@ export default function SalesTracker() {
   const [showAddMember, setShowAddMember] = useState(false);
   const [activeTab, setActiveTab] = useState("guide");
   const [history, setHistory] = useState([]);
+
+  /* ===== ADMIN STATE ===== */
+  const [adminData, setAdminData] = useState([]);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const isAdmin = session?.user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const [showMeetModal, setShowMeetModal] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
@@ -254,6 +332,7 @@ export default function SalesTracker() {
 
   const buildSavePayload = (overrides = {}) => ({
     grade, meetsList, clientsList, ventesList, team, weeklyMeets, history,
+    userPrenom: currentPrenom, userNom: currentNom, userEmail: session?.user?.email || "",
     ...overrides,
   });
 
@@ -267,8 +346,14 @@ export default function SalesTracker() {
       });
       // Load tracker data
       const saved = await supabaseLoad(data.user.id, data.access_token);
-      if (saved) loadUserData(saved);
-      else resetTracker();
+      if (saved) {
+        loadUserData(saved);
+        // Update user info if missing
+        if (!saved.userEmail) {
+          const updatedData = { ...saved, userPrenom: data.user.user_metadata?.prenom || "", userNom: data.user.user_metadata?.nom || "", userEmail: data.user.email || "" };
+          await supabaseSave(data.user.id, data.access_token, updatedData);
+        }
+      } else resetTracker();
       setSession(data);
       setLoginForm({ email: "", password: "" });
     } catch (e) {
@@ -296,14 +381,14 @@ export default function SalesTracker() {
       // If Supabase returns a session (email confirmation disabled)
       if (data.access_token) {
         resetTracker();
-        const defaultData = getDefaultData();
+        const defaultData = { ...getDefaultData(), userPrenom: signupForm.prenom.trim(), userNom: signupForm.nom.trim(), userEmail: email };
         await supabaseSave(data.user.id, data.access_token, defaultData);
         setSession(data);
       } else if (data.user && !data.session) {
         // Email confirmation required — auto-login
         const loginData = await supabaseAuth("token?grant_type=password", { email, password: signupForm.password });
         resetTracker();
-        const defaultData = getDefaultData();
+        const defaultData = { ...getDefaultData(), userPrenom: signupForm.prenom.trim(), userNom: signupForm.nom.trim(), userEmail: email };
         await supabaseSave(loginData.user.id, loginData.access_token, defaultData);
         setSession(loginData);
       }
@@ -327,6 +412,17 @@ export default function SalesTracker() {
     setSession(null);
     resetTracker();
     setAuthScreen("login");
+  };
+
+  /* ===== ADMIN LOGIC ===== */
+  const loadAdminData = async () => {
+    if (!isAdmin || !session) return;
+    setAdminLoading(true);
+    try {
+      const rows = await supabaseLoadAll(session.access_token);
+      setAdminData(rows || []);
+    } catch { setAdminData([]); }
+    setAdminLoading(false);
   };
 
   /* ===== TRACKER LOGIC ===== */
@@ -426,6 +522,7 @@ export default function SalesTracker() {
     { id: "dashboard", label: "Mon tracker" },
     { id: "team", label: "Equipe" },
     { id: "history", label: "Historique" },
+    ...(isAdmin ? [{ id: "admin", label: "Admin" }] : []),
   ];
 
   const globalStyles = `
@@ -978,6 +1075,80 @@ export default function SalesTracker() {
                   {h.amount > 0 && <div style={{ fontWeight: 700, color: "#10B981", fontFamily: "monospace", whiteSpace: "nowrap" }}>+{formatMoney(h.amount)}</div>}
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {/* ===================== ADMIN TAB ===================== */}
+        {activeTab === "admin" && isAdmin && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ background: "linear-gradient(135deg, #EF444422, #EF444408)", borderRadius: 16, padding: 20, border: "1px solid #EF444433", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#EF4444" }}>Panneau Admin</div>
+                <div style={{ fontSize: 13, color: "#9CA3AF", marginTop: 4 }}>Vue d'ensemble de tous les comptes et leur avancement</div>
+              </div>
+              <button onClick={loadAdminData} disabled={adminLoading} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: adminLoading ? "#374151" : "#EF4444", color: adminLoading ? "#6B7280" : "#FFF", fontWeight: 700, fontSize: 14, cursor: adminLoading ? "not-allowed" : "pointer" }}>
+                {adminLoading ? "Chargement..." : "Rafraichir les donnees"}
+              </button>
+            </div>
+
+            {adminData.length === 0 && !adminLoading && (
+              <div style={{ background: "linear-gradient(135deg, #1F2937, #111827)", borderRadius: 16, padding: 32, textAlign: "center", border: "1px solid #374151" }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>👆</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#F3F4F6" }}>Clique sur "Rafraichir les donnees" pour voir tous les comptes</div>
+              </div>
+            )}
+
+            {adminData.length > 0 && (
+              <>
+                {/* Summary cards */}
+                <div className="grid-stats" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
+                  <StatCard icon="👥" label="Total comptes" value={adminData.length} color="#3B82F6" />
+                  <StatCard icon="📅" label="Total meets" value={adminData.reduce((s, r) => s + (r.data?.meetsList?.length || 0), 0)} color="#F59E0B" />
+                  <StatCard icon="✅" label="Total clients" value={adminData.reduce((s, r) => s + (r.data?.clientsList?.length || 0), 0)} color="#10B981" />
+                  <StatCard icon="💰" label="Total gains" value={formatMoney(adminData.reduce((s, r) => {
+                    const d = r.data || {};
+                    const gr = GRADES[d.grade || "vendeur"];
+                    const mc = (d.clientsList?.length || 0) * gr.perClientSigne;
+                    const mm = gr.meetBonus ? Math.floor((d.meetsList?.length || 0) / gr.meetBonus.every) * gr.meetBonus.amount : (d.meetsList?.length || 0) * gr.perMeet;
+                    const tc = (d.team || []).reduce((a, m) => a + (m.clientsList?.length || 0), 0) * gr.teamMarginClient;
+                    const tm = (d.team || []).reduce((a, m) => a + (m.meetsList?.length || 0), 0) * gr.teamMarginMeet;
+                    const vm = (d.ventesList?.length || 0) * gr.perVenteEnMeet;
+                    return s + mc + mm + tc + tm + vm;
+                  }, 0))} color="#EC4899" />
+                </div>
+
+                {/* Users list */}
+                <div style={{ background: "linear-gradient(135deg, #1F2937, #111827)", borderRadius: 16, padding: 20, border: "1px solid #374151" }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: "#F3F4F6" }}>Tous les comptes ({adminData.length})</div>
+                  {adminData.map((row, idx) => {
+                    const d = row.data || {};
+                    const uPrenom = d.userPrenom || "—";
+                    const uNom = d.userNom || "";
+                    const uEmail = d.userEmail || "—";
+                    const uGrade = d.grade || "vendeur";
+                    const uGradeInfo = GRADES[uGrade];
+                    const uMeets = d.meetsList?.length || 0;
+                    const uClients = d.clientsList?.length || 0;
+                    const uVentes = d.ventesList?.length || 0;
+                    const uTeamSize = d.team?.length || 0;
+                    const uTeamClients = (d.team || []).reduce((a, m) => a + (m.clientsList?.length || 0), 0);
+                    const uTeamMeets = (d.team || []).reduce((a, m) => a + (m.meetsList?.length || 0), 0);
+                    const uConversion = uMeets > 0 ? Math.round((uClients / uMeets) * 100) : 0;
+                    const uGainsClients = uClients * uGradeInfo.perClientSigne;
+                    const uGainsMeets = uGradeInfo.meetBonus ? Math.floor(uMeets / uGradeInfo.meetBonus.every) * uGradeInfo.meetBonus.amount : uMeets * uGradeInfo.perMeet;
+                    const uGainsTeamC = uTeamClients * uGradeInfo.teamMarginClient;
+                    const uGainsTeamM = uTeamMeets * uGradeInfo.teamMarginMeet;
+                    const uGainsVentes = uVentes * uGradeInfo.perVenteEnMeet;
+                    const uTotalGains = uGainsClients + uGainsMeets + uGainsTeamC + uGainsTeamM + uGainsVentes;
+                    const lastActive = row.updated_at ? new Date(row.updated_at).toLocaleString("fr-CA") : "—";
+
+                    return (
+                      <AdminUserRow key={row.user_id || idx} prenom={uPrenom} nom={uNom} email={uEmail} grade={uGrade} gradeInfo={uGradeInfo} meets={uMeets} clients={uClients} ventes={uVentes} teamSize={uTeamSize} teamClients={uTeamClients} teamMeets={uTeamMeets} conversion={uConversion} totalGains={uTotalGains} lastActive={lastActive} meetsList={d.meetsList || []} clientsList={d.clientsList || []} />
+                    );
+                  })}
+                </div>
+              </>
             )}
           </div>
         )}
